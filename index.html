@@ -1,0 +1,1356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover">
+<title>LIFE: WebXR</title>
+
+<style>
+*{box-sizing:border-box}
+html,body{
+  margin:0;
+  width:100%;
+  height:100%;
+  overflow:hidden;
+  background:#111;
+  font-family:Arial,Helvetica,sans-serif;
+}
+#game{
+  position:fixed;
+  inset:0;
+}
+#hud{
+  position:fixed;
+  top:14px;
+  left:14px;
+  z-index:10;
+  color:white;
+  background:rgba(0,0,0,.65);
+  border:1px solid rgba(255,255,255,.15);
+  border-radius:14px;
+  padding:12px 14px;
+  min-width:190px;
+  backdrop-filter:blur(10px);
+  pointer-events:none;
+}
+#title{
+  font-size:18px;
+  font-weight:800;
+  margin-bottom:7px;
+}
+.stat{
+  display:flex;
+  justify-content:space-between;
+  gap:20px;
+  font-size:13px;
+  margin:3px 0;
+}
+#message{
+  position:fixed;
+  left:50%;
+  bottom:28px;
+  transform:translateX(-50%);
+  z-index:20;
+  color:white;
+  background:rgba(0,0,0,.78);
+  border-radius:12px;
+  padding:10px 16px;
+  font-size:14px;
+  opacity:0;
+  transition:opacity .25s;
+  pointer-events:none;
+}
+#message.show{opacity:1}
+#help{
+  position:fixed;
+  right:14px;
+  top:14px;
+  z-index:10;
+  color:#ddd;
+  background:rgba(0,0,0,.55);
+  border-radius:12px;
+  padding:10px;
+  font-size:12px;
+  max-width:210px;
+}
+button{
+  border:0;
+  border-radius:10px;
+  padding:10px 14px;
+  font-weight:700;
+  cursor:pointer;
+}
+#start{
+  position:fixed;
+  left:50%;
+  top:50%;
+  transform:translate(-50%,-50%);
+  z-index:30;
+  text-align:center;
+  color:white;
+  background:rgba(8,10,14,.94);
+  border:1px solid rgba(255,255,255,.15);
+  border-radius:20px;
+  padding:28px;
+  width:min(420px,90%);
+}
+#start h1{
+  margin:0 0 8px;
+  font-size:32px;
+}
+#start p{
+  color:#aaa;
+  line-height:1.5;
+}
+#play{
+  background:#fff;
+  color:#111;
+  font-size:16px;
+  margin-top:10px;
+}
+canvas{display:block}
+</style>
+</head>
+
+<body>
+
+<div id="game"></div>
+
+<div id="hud">
+  <div id="title">LIFE: WebXR</div>
+  <div class="stat"><span>Money</span><strong id="money">$500</strong></div>
+  <div class="stat"><span>Job</span><strong id="job">Unemployed</strong></div>
+  <div class="stat"><span>Time</span><strong id="time">08:00</strong></div>
+  <div class="stat"><span>Day</span><strong id="day">Monday</strong></div>
+</div>
+
+<div id="help">
+  <b>Desktop testing</b><br>
+  WASD = move<br>
+  Mouse = look<br>
+  E = interact<br>
+  <br>
+  <b>Quest</b><br>
+  Enter VR to use your headset.
+</div>
+
+<div id="message"></div>
+
+<div id="start">
+  <h1>LIFE</h1>
+  <p>
+    A WebXR life simulator.<br>
+    Explore the neighborhood, meet NPCs,
+    find work and build your virtual life.
+  </p>
+  <button id="play">ENTER WORLD</button>
+</div>
+
+<script type="module">
+
+import * as THREE from
+"https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js";
+
+import {VRButton} from
+"https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/webxr/VRButton.js";
+
+/* =========================================================
+   BASIC SETUP
+========================================================= */
+
+const scene = new THREE.Scene();
+
+scene.background = new THREE.Color(0x87b9df);
+
+scene.fog = new THREE.Fog(
+  0x87b9df,
+  35,
+  180
+);
+
+const camera = new THREE.PerspectiveCamera(
+  70,
+  innerWidth / innerHeight,
+  0.05,
+  500
+);
+
+camera.position.set(0,1.7,12);
+
+const renderer = new THREE.WebGLRenderer({
+  antialias:true,
+  powerPreference:"high-performance"
+});
+
+renderer.setPixelRatio(
+  Math.min(devicePixelRatio,1.5)
+);
+
+renderer.setSize(
+  innerWidth,
+  innerHeight
+);
+
+renderer.xr.enabled = true;
+
+document
+  .getElementById("game")
+  .appendChild(renderer.domElement);
+
+document.body.appendChild(
+  VRButton.createButton(renderer)
+);
+
+/* =========================================================
+   LIGHTING
+========================================================= */
+
+const skyLight = new THREE.HemisphereLight(
+  0xffffff,
+  0x555555,
+  2
+);
+
+scene.add(skyLight);
+
+const sun = new THREE.DirectionalLight(
+  0xffffff,
+  2
+);
+
+sun.position.set(
+  30,
+  60,
+  20
+);
+
+sun.castShadow = false;
+
+scene.add(sun);
+
+/* =========================================================
+   GAME STATE
+========================================================= */
+
+const state = {
+  money:500,
+  job:"Unemployed",
+  minutes:8*60,
+  day:0,
+  energy:100,
+  hunger:100,
+  started:false
+};
+
+const days=[
+  "Monday",
+  "Tuesday",
+  "Wednesday",
+  "Thursday",
+  "Friday",
+  "Saturday",
+  "Sunday"
+];
+
+const moneyEl=document.getElementById("money");
+const jobEl=document.getElementById("job");
+const timeEl=document.getElementById("time");
+const dayEl=document.getElementById("day");
+
+function updateHUD(){
+
+  moneyEl.textContent="$"+Math.floor(state.money);
+  jobEl.textContent=state.job;
+
+  let h=Math.floor(state.minutes/60);
+  let m=Math.floor(state.minutes%60);
+
+  timeEl.textContent=
+    String(h).padStart(2,"0")+
+    ":"+
+    String(m).padStart(2,"0");
+
+  dayEl.textContent=days[state.day%7];
+}
+
+function message(text){
+
+  const el=document.getElementById("message");
+
+  el.textContent=text;
+  el.classList.add("show");
+
+  clearTimeout(message.timer);
+
+  message.timer=setTimeout(()=>{
+    el.classList.remove("show");
+  },2500);
+}
+
+/* =========================================================
+   MATERIALS
+========================================================= */
+
+const matGround=new THREE.MeshStandardMaterial({
+  color:0x4c7443,
+  roughness:1
+});
+
+const matRoad=new THREE.MeshStandardMaterial({
+  color:0x292d32,
+  roughness:1
+});
+
+const matSidewalk=new THREE.MeshStandardMaterial({
+  color:0x858585,
+  roughness:1
+});
+
+const matHouse=new THREE.MeshStandardMaterial({
+  color:0xd8b18c
+});
+
+const matRoof=new THREE.MeshStandardMaterial({
+  color:0x343b48
+});
+
+const matWindow=new THREE.MeshStandardMaterial({
+  color:0x80b9d5,
+  metalness:.1,
+  roughness:.2
+});
+
+const matDoor=new THREE.MeshStandardMaterial({
+  color:0x51341f
+});
+
+const matShop=new THREE.MeshStandardMaterial({
+  color:0x4977a8
+});
+
+const matTree=new THREE.MeshStandardMaterial({
+  color:0x315f2e
+});
+
+const matTrunk=new THREE.MeshStandardMaterial({
+  color:0x68452c
+});
+
+/* =========================================================
+   HELPERS
+========================================================= */
+
+function box(
+  x,y,z,
+  sx,sy,sz,
+  material
+){
+
+  const mesh=new THREE.Mesh(
+    new THREE.BoxGeometry(
+      sx,sy,sz
+    ),
+    material
+  );
+
+  mesh.position.set(
+    x,y,z
+  );
+
+  scene.add(mesh);
+
+  return mesh;
+}
+
+function cylinder(
+  x,y,z,
+  radius,
+  height,
+  material
+){
+
+  const mesh=new THREE.Mesh(
+    new THREE.CylinderGeometry(
+      radius,
+      radius,
+      height,
+      12
+    ),
+    material
+  );
+
+  mesh.position.set(
+    x,y,z
+  );
+
+  scene.add(mesh);
+
+  return mesh;
+}
+
+/* =========================================================
+   WORLD
+========================================================= */
+
+/* Ground */
+
+box(
+  0,-0.2,0,
+  180,.4,180,
+  matGround
+);
+
+/* Main roads */
+
+box(
+  0,.01,0,
+  180,.05,12,
+  matRoad
+);
+
+box(
+  0,.015,0,
+  12,.06,180,
+  matRoad
+);
+
+/* Sidewalks */
+
+box(
+  0,.04,-8,
+  180,.08,3,
+  matSidewalk
+);
+
+box(
+  0,.04,8,
+  180,.08,3,
+  matSidewalk
+);
+
+box(
+  -8,.04,0,
+  3,.08,180,
+  matSidewalk
+);
+
+box(
+  8,.04,0,
+  3,.08,180,
+  matSidewalk
+);
+
+/* Road markings */
+
+const lineMat=new THREE.MeshBasicMaterial({
+  color:0xffffff
+});
+
+for(let x=-80;x<=80;x+=8){
+
+  box(
+    x,.08,0,
+    4,.03,.18,
+    lineMat
+  );
+
+}
+
+for(let z=-80;z<=80;z+=8){
+
+  box(
+    0,.08,z,
+    .18,.03,4,
+    lineMat
+  );
+
+}
+
+/* =========================================================
+   HOUSES
+========================================================= */
+
+function createHouse(x,z,color=0xd8b18c){
+
+  const bodyMat=new THREE.MeshStandardMaterial({
+    color
+  });
+
+  box(
+    x,2,z,
+    12,4,9,
+    bodyMat
+  );
+
+  box(
+    x,4.8,z,
+    13,1.5,10,
+    matRoof
+  );
+
+  box(
+    x,1.6,z-4.6,
+    2,3,.2,
+    matDoor
+  );
+
+  box(
+    x-3,2.5,z-4.65,
+    2.4,1.7,.2,
+    matWindow
+  );
+
+  box(
+    x+3,2.5,z-4.65,
+    2.4,1.7,.2,
+    matWindow
+  );
+}
+
+createHouse(-25,-22,0xcba27f);
+createHouse(25,-22,0xb7c5cf);
+createHouse(-25,22,0xd4a37d);
+createHouse(25,22,0xb8aa8d);
+
+/* =========================================================
+   PLAYER HOUSE
+========================================================= */
+
+const playerHouse=box(
+  -25,2,-5,
+  12,4,9,
+  new THREE.MeshStandardMaterial({
+    color:0xc7a783
+  })
+);
+
+box(
+  -25,4.8,-5,
+  13,1.5,10,
+  matRoof
+);
+
+box(
+  -25,1.6,-9.6,
+  2,3,.2,
+  matDoor
+);
+
+message("Welcome home!");
+
+/* =========================================================
+   SHOP
+========================================================= */
+
+box(
+  25,3,5,
+  14,6,10,
+  matShop
+);
+
+box(
+  25,6.8,5,
+  15,1.2,11,
+  matRoof
+);
+
+box(
+  25,3,-.15,
+  7,3,.15,
+  matWindow
+);
+
+box(
+  25,1.5,-.2,
+  2.5,3,.25,
+  matDoor
+);
+
+/* =========================================================
+   TREES
+========================================================= */
+
+function tree(x,z){
+
+  cylinder(
+    x,1,z,
+    .45,
+    2,
+    matTrunk
+  );
+
+  const crown=new THREE.Mesh(
+    new THREE.SphereGeometry(
+      2.2,
+      12,
+      10
+    ),
+    matTree
+  );
+
+  crown.position.set(
+    x,
+    3,
+    z
+  );
+
+  scene.add(crown);
+}
+
+for(let i=0;i<45;i++){
+
+  const x=(Math.random()*140)-70;
+  const z=(Math.random()*140)-70;
+
+  if(
+    Math.abs(x)<12 ||
+    Math.abs(z)<12
+  ) continue;
+
+  tree(x,z);
+}
+
+/* =========================================================
+   NPC SYSTEM
+========================================================= */
+
+const npcs=[];
+
+const npcColors=[
+  0x4064a8,
+  0xa85b48,
+  0x71964b,
+  0x875f9f,
+  0xc78d46,
+  0x555d68
+];
+
+function createNPC(index){
+
+  const group=new THREE.Group();
+
+  const body=new THREE.Mesh(
+    new THREE.CapsuleGeometry(
+      .38,
+      1.0,
+      4,
+      8
+    ),
+    new THREE.MeshStandardMaterial({
+      color:npcColors[
+        index%npcColors.length
+      ]
+    })
+  );
+
+  body.position.y=1.05;
+
+  const head=new THREE.Mesh(
+    new THREE.SphereGeometry(
+      .32,
+      10,
+      8
+    ),
+    new THREE.MeshStandardMaterial({
+      color:0xd8aa82
+    })
+  );
+
+  head.position.y=1.85;
+
+  group.add(body);
+  group.add(head);
+
+  const angle=Math.random()*Math.PI*2;
+  const radius=25+Math.random()*40;
+
+  group.position.set(
+    Math.cos(angle)*radius,
+    0,
+    Math.sin(angle)*radius
+  );
+
+  scene.add(group);
+
+  const npc={
+    group,
+    speed:.7+Math.random()*.5,
+    target:new THREE.Vector3(),
+    wait:0
+  };
+
+  chooseNPCTarget(npc);
+
+  npcs.push(npc);
+}
+
+function chooseNPCTarget(npc){
+
+  npc.target.set(
+    (Math.random()*120)-60,
+    0,
+    (Math.random()*120)-60
+  );
+
+  npc.wait=1+Math.random()*4;
+}
+
+for(let i=0;i<24;i++){
+  createNPC(i);
+}
+
+/* =========================================================
+   NPC MOVEMENT
+========================================================= */
+
+function updateNPCs(delta){
+
+  for(const npc of npcs){
+
+    if(npc.wait>0){
+
+      npc.wait-=delta;
+
+      if(npc.wait<=0){
+        chooseNPCTarget(npc);
+      }
+
+      continue;
+    }
+
+    const pos=npc.group.position;
+
+    const dx=
+      npc.target.x-pos.x;
+
+    const dz=
+      npc.target.z-pos.z;
+
+    const distance=
+      Math.sqrt(dx*dx+dz*dz);
+
+    if(distance<1.5){
+
+      chooseNPCTarget(npc);
+      continue;
+
+    }
+
+    const vx=dx/distance;
+    const vz=dz/distance;
+
+    pos.x+=vx*npc.speed*delta;
+    pos.z+=vz*npc.speed*delta;
+
+    npc.group.rotation.y=
+      Math.atan2(vx,vz);
+  }
+}
+
+/* =========================================================
+   INTERACTABLE OBJECTS
+========================================================= */
+
+const interactables=[];
+
+function interactable(
+  mesh,
+  name,
+  action
+){
+
+  mesh.userData.interactable=true;
+  mesh.userData.name=name;
+  mesh.userData.action=action;
+
+  interactables.push(mesh);
+
+  return mesh;
+}
+
+/* Job board */
+
+const jobBoard=box(
+  -15,1.5,0,
+  3,.05,2,
+  new THREE.MeshStandardMaterial({
+    color:0x222222
+  })
+);
+
+interactable(
+  jobBoard,
+  "Job Board",
+  ()=>{
+    if(state.job==="Unemployed"){
+      state.job="Delivery Worker";
+      message(
+        "You got a job! Deliveries pay $75."
+      );
+    }else{
+      message(
+        "You're already working as "+
+        state.job+"."
+      );
+    }
+    updateHUD();
+  }
+);
+
+/* ATM */
+
+const atm=box(
+  20,1.3,-2,
+  1.2,2.6,.7,
+  new THREE.MeshStandardMaterial({
+    color:0x303840
+  })
+);
+
+interactable(
+  atm,
+  "ATM",
+  ()=>{
+    message(
+      "Bank balance: $"+
+      Math.floor(state.money)
+    );
+  }
+);
+
+/* Store */
+
+const storeDoor=box(
+  25,1.5,-.2,
+  2.5,3,.3,
+  matDoor
+);
+
+interactable(
+  storeDoor,
+  "Store",
+  ()=>{
+    if(state.money>=20){
+
+      state.money-=20;
+
+      message(
+        "You bought groceries for $20."
+      );
+
+    }else{
+
+      message(
+        "You need $20."
+      );
+
+    }
+
+    updateHUD();
+  }
+);
+
+/* =========================================================
+   JOB SYSTEM
+========================================================= */
+
+let jobTimer=0;
+
+function updateJob(delta){
+
+  if(state.job!=="Delivery Worker")
+    return;
+
+  jobTimer+=delta;
+
+  if(jobTimer>=30){
+
+    jobTimer=0;
+
+    state.money+=75;
+
+    message(
+      "Delivery completed! +$75"
+    );
+
+    updateHUD();
+  }
+}
+
+/* =========================================================
+   TIME
+========================================================= */
+
+let timeAccumulator=0;
+
+function updateTime(delta){
+
+  timeAccumulator+=delta;
+
+  if(timeAccumulator>=1){
+
+    timeAccumulator=0;
+
+    /*
+      One real second = one simulated minute.
+    */
+
+    state.minutes++;
+
+    if(state.minutes>=24*60){
+
+      state.minutes=0;
+      state.day++;
+
+      state.money-=50;
+
+      message(
+        "A new day begins. Daily expenses: $50."
+      );
+    }
+
+    updateHUD();
+  }
+
+  const normalized=
+    state.minutes/(24*60);
+
+  const angle=
+    normalized*Math.PI*2-Math.PI/2;
+
+  sun.position.set(
+    Math.cos(angle)*60,
+    Math.sin(angle)*60,
+    30
+  );
+
+  const daylight=
+    Math.max(
+      .12,
+      Math.sin(angle)*.9+.35
+    );
+
+  skyLight.intensity=
+    .5+daylight;
+
+  sun.intensity=
+    .3+daylight;
+
+  const r=Math.floor(
+    135*daylight
+  );
+
+  const g=Math.floor(
+    185*daylight+30
+  );
+
+  const b=Math.floor(
+    220*daylight+20
+  );
+
+  scene.background.setRGB(
+    Math.min(1,r/255),
+    Math.min(1,g/255),
+    Math.min(1,b/255)
+  );
+
+}
+
+/* =========================================================
+   DESKTOP MOVEMENT
+========================================================= */
+
+const keys={};
+
+addEventListener(
+  "keydown",
+  e=>{
+    keys[e.key.toLowerCase()]=true;
+
+    if(e.key.toLowerCase()==="e"){
+      interact();
+    }
+  }
+);
+
+addEventListener(
+  "keyup",
+  e=>{
+    keys[e.key.toLowerCase()]=false;
+  }
+);
+
+let mouseLocked=false;
+
+renderer.domElement.addEventListener(
+  "click",
+  ()=>{
+    if(
+      !renderer.xr.isPresenting &&
+      document.pointerLockElement===null
+    ){
+      renderer.domElement.requestPointerLock();
+    }
+  }
+);
+
+addEventListener(
+  "mousemove",
+  e=>{
+
+    if(
+      !renderer.xr.isPresenting &&
+      document.pointerLockElement
+    ){
+
+      camera.rotation.order="YXZ";
+
+      camera.rotation.y-=e.movementX*.002;
+      camera.rotation.x-=e.movementY*.002;
+
+      camera.rotation.x=
+        Math.max(
+          -1.4,
+          Math.min(1.4,camera.rotation.x)
+        );
+    }
+  }
+);
+
+function updateDesktop(delta){
+
+  if(renderer.xr.isPresenting)
+    return;
+
+  const speed=7*delta;
+
+  const forward=new THREE.Vector3();
+  camera.getWorldDirection(forward);
+
+  forward.y=0;
+  forward.normalize();
+
+  const right=new THREE.Vector3()
+    .crossVectors(
+      forward,
+      new THREE.Vector3(0,1,0)
+    )
+    .normalize();
+
+  if(keys.w)
+    camera.position.addScaledVector(
+      forward,
+      speed
+    );
+
+  if(keys.s)
+    camera.position.addScaledVector(
+      forward,
+      -speed
+    );
+
+  if(keys.a)
+    camera.position.addScaledVector(
+      right,
+      -speed
+    );
+
+  if(keys.d)
+    camera.position.addScaledVector(
+      right,
+      speed
+    );
+
+  camera.position.y=1.7;
+}
+
+/* =========================================================
+   SIMPLE INTERACTION
+========================================================= */
+
+const raycaster=
+  new THREE.Raycaster();
+
+function interact(){
+
+  const direction=
+    new THREE.Vector3();
+
+  camera.getWorldDirection(
+    direction
+  );
+
+  raycaster.set(
+    camera.position,
+    direction
+  );
+
+  const hits=
+    raycaster.intersectObjects(
+      interactables,
+      true
+    );
+
+  if(!hits.length){
+
+    message(
+      "Nothing to interact with."
+    );
+
+    return;
+  }
+
+  let object=hits[0].object;
+
+  while(
+    object &&
+    !object.userData.interactable
+  ){
+    object=object.parent;
+  }
+
+  if(
+    object &&
+    object.userData.action
+  ){
+
+    object.userData.action();
+  }
+}
+
+/* =========================================================
+   VR CONTROLLER INPUT
+========================================================= */
+
+function setupController(index){
+
+  const controller=
+    renderer.xr.getController(index);
+
+  controller.addEventListener(
+    "selectstart",
+    ()=>{
+      interactVR(controller);
+    }
+  );
+
+  scene.add(controller);
+}
+
+setupController(0);
+setupController(1);
+
+function interactVR(controller){
+
+  const direction=
+    new THREE.Vector3(
+      0,
+      0,
+      -1
+    );
+
+  direction.applyQuaternion(
+    controller.quaternion
+  );
+
+  raycaster.set(
+    controller.position,
+    direction
+  );
+
+  const hits=
+    raycaster.intersectObjects(
+      interactables,
+      true
+    );
+
+  if(!hits.length){
+
+    message(
+      "Nothing to interact with."
+    );
+
+    return;
+  }
+
+  let object=hits[0].object;
+
+  while(
+    object &&
+    !object.userData.interactable
+  ){
+    object=object.parent;
+  }
+
+  if(
+    object &&
+    object.userData.action
+  ){
+
+    object.userData.action();
+  }
+}
+
+/* =========================================================
+   VR HANDS
+========================================================= */
+
+function makeHand(){
+
+  const group=new THREE.Group();
+
+  const palm=new THREE.Mesh(
+    new THREE.BoxGeometry(
+      .16,.08,.22
+    ),
+    new THREE.MeshStandardMaterial({
+      color:0xd5a07e
+    })
+  );
+
+  group.add(palm);
+
+  for(let i=0;i<5;i++){
+
+    const finger=new THREE.Mesh(
+      new THREE.CapsuleGeometry(
+        .018,
+        .10,
+        3,
+        5
+      ),
+      new THREE.MeshStandardMaterial({
+        color:0xd5a07e
+      })
+    );
+
+    finger.position.set(
+      (i-2)*.035,
+      0,
+      -.13
+    );
+
+    group.add(finger);
+  }
+
+  return group;
+}
+
+const handL=makeHand();
+const handR=makeHand();
+
+handL.visible=false;
+handR.visible=false;
+
+scene.add(
+  handL,
+  handR
+);
+
+renderer.xr.addEventListener(
+  "sessionstart",
+  ()=>{
+
+    handL.visible=true;
+    handR.visible=true;
+
+    message(
+      "Welcome to LIFE. Explore your neighborhood."
+    );
+
+  }
+);
+
+renderer.xr.addEventListener(
+  "sessionend",
+  ()=>{
+
+    handL.visible=false;
+    handR.visible=false;
+
+  }
+);
+
+/* =========================================================
+   GAME LOOP
+========================================================= */
+
+let previous=performance.now();
+
+function animate(){
+
+  const now=performance.now();
+
+  const delta=
+    Math.min(
+      (now-previous)/1000,
+      .05
+    );
+
+  previous=now;
+
+  updateNPCs(delta);
+  updateJob(delta);
+  updateTime(delta);
+  updateDesktop(delta);
+
+  renderer.render(
+    scene,
+    camera
+  );
+}
+
+renderer.setAnimationLoop(
+  animate
+);
+
+/* =========================================================
+   START
+========================================================= */
+
+document
+  .getElementById("play")
+  .addEventListener(
+    "click",
+    ()=>{
+
+      state.started=true;
+
+      document
+        .getElementById("start")
+        .style.display="none";
+
+      message(
+        "Explore the neighborhood and find the job board."
+      );
+
+      updateHUD();
+    }
+  );
+
+/* =========================================================
+   RESIZE
+========================================================= */
+
+addEventListener(
+  "resize",
+  ()=>{
+
+    camera.aspect=
+      innerWidth/innerHeight;
+
+    camera.updateProjectionMatrix();
+
+    renderer.setSize(
+      innerWidth,
+      innerHeight
+    );
+
+  }
+);
+
+updateHUD();
+
+</script>
+</body>
+</html>
