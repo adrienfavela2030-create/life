@@ -1,0 +1,647 @@
+/* =========================================================
+   STORE SHIFT VR
+   Main interface styling
+   ========================================================= */
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body {
+  width: 100%;
+  min-height: 100%;
+  overflow: hidden;
+  font-family:
+    Inter,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    Arial,
+    sans-serif;
+  background: #080a0d;
+  color: #ffffff;
+}
+
+body {
+  min-height: 100vh;
+}
+
+button {
+  font: inherit;
+}
+
+/* =========================================================
+   LOADING SCREEN
+   ========================================================= */
+
+#loadingScreen {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  background:
+    radial-gradient(
+      circle at center,
+      #20252c 0%,
+      #0d1014 45%,
+      #050608 100%
+    );
+
+  transition:
+    opacity 0.4s ease,
+    visibility 0.4s ease;
+}
+
+#loadingScreen.hidden {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.loadingBox {
+  width: min(90%, 430px);
+  text-align: center;
+}
+
+.loadingTitle {
+  font-size: clamp(2rem, 8vw, 4rem);
+  font-weight: 900;
+  letter-spacing: -0.06em;
+}
+
+.loadingSubtitle {
+  margin-top: 8px;
+  color: #9da4ad;
+  font-size: 0.95rem;
+}
+
+.loadingBar {
+  width: 100%;
+  height: 7px;
+
+  margin-top: 30px;
+
+  overflow: hidden;
+  border-radius: 999px;
+
+  background: #20242a;
+}
+
+.loadingProgress {
+  width: 35%;
+  height: 100%;
+
+  border-radius: inherit;
+
+  background: linear-gradient(
+    90deg,
+    #58ff9a,
+    #b5ffcf
+  );
+
+  animation: loading 1.4s ease-in-out infinite;
+}
+
+.loadingStatus {
+  margin-top: 12px;
+
+  color: #747c86;
+  font-size: 0.8rem;
+}
+
+@keyframes loading {
+  0% {
+    width: 10%;
+    transform: translateX(-100%);
+  }
+
+  50% {
+    width: 55%;
+  }
+
+  100% {
+    width: 10%;
+    transform: translateX(700%);
+  }
+}
+
+/* =========================================================
+   MAIN MENU
+   ========================================================= */
+
+#mainMenu {
+  position: fixed;
+  inset: 0;
+
+  z-index: 100;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 24px;
+
+  background:
+    radial-gradient(
+      circle at 50% 35%,
+      rgba(70, 255, 140, 0.08),
+      transparent 32%
+    ),
+    #080a0d;
+}
+
+.menuCard {
+  width: min(92vw, 520px);
+
+  padding: 42px 34px;
+
+  border: 1px solid #2a3037;
+  border-radius: 24px;
+
+  background:
+    linear-gradient(
+      145deg,
+      rgba(28, 32, 38, 0.98),
+      rgba(12, 15, 19, 0.98)
+    );
+
+  box-shadow:
+    0 30px 90px rgba(0, 0, 0, 0.55);
+}
+
+.gameTitle {
+  font-size: clamp(2.6rem, 12vw, 5.4rem);
+  line-height: 0.9;
+  font-weight: 950;
+  letter-spacing: -0.08em;
+}
+
+.gameTitle span {
+  display: block;
+  color: #63ff9d;
+}
+
+.gameTagline {
+  margin-top: 18px;
+
+  max-width: 400px;
+
+  color: #a8afb8;
+  line-height: 1.55;
+}
+
+.menuButtons {
+  display: grid;
+  gap: 12px;
+
+  margin-top: 32px;
+}
+
+.menuButton {
+  width: 100%;
+  min-height: 56px;
+
+  padding: 14px 18px;
+
+  border: 1px solid #353c45;
+  border-radius: 14px;
+
+  background: #191d22;
+  color: #ffffff;
+
+  font-size: 1rem;
+  font-weight: 800;
+
+  cursor: pointer;
+
+  transition:
+    transform 0.15s ease,
+    background 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.menuButton:hover {
+  background: #242a31;
+  border-color: #4a535e;
+}
+
+.menuButton:active {
+  transform: scale(0.98);
+}
+
+.menuButton.primary {
+  border-color: #63ff9d;
+  background: #63ff9d;
+  color: #07100a;
+}
+
+.menuButton.primary:hover {
+  background: #85ffb4;
+}
+
+.menuHint {
+  margin-top: 22px;
+
+  color: #69717b;
+
+  font-size: 0.78rem;
+  line-height: 1.5;
+}
+
+/* =========================================================
+   SETTINGS
+   ========================================================= */
+
+#settingsPanel {
+  position: fixed;
+  inset: 0;
+
+  z-index: 200;
+
+  display: none;
+  align-items: center;
+  justify-content: center;
+
+  padding: 24px;
+
+  background: rgba(0, 0, 0, 0.78);
+}
+
+#settingsPanel.visible {
+  display: flex;
+}
+
+.settingsCard {
+  width: min(92vw, 460px);
+
+  padding: 28px;
+
+  border: 1px solid #303740;
+  border-radius: 20px;
+
+  background: #111419;
+}
+
+.settingsCard h2 {
+  font-size: 1.6rem;
+}
+
+.settingsCard p {
+  margin-top: 12px;
+
+  color: #9299a2;
+  line-height: 1.5;
+}
+
+/* =========================================================
+   GAME HUD
+   ========================================================= */
+
+#gameHUD {
+  position: fixed;
+  top: 18px;
+  left: 18px;
+  right: 18px;
+
+  z-index: 50;
+
+  display: none;
+
+  pointer-events: none;
+}
+
+#gameHUD.visible {
+  display: block;
+}
+
+.hudTop {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.hudGroup {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.hudBox {
+  min-width: 105px;
+
+  padding: 10px 13px;
+
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+
+  background: rgba(10, 12, 15, 0.78);
+
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.hudLabel {
+  display: block;
+
+  color: #727b85;
+
+  font-size: 0.66rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.hudValue {
+  display: block;
+
+  margin-top: 3px;
+
+  font-size: 1rem;
+  font-weight: 900;
+}
+
+.moneyValue {
+  color: #63ff9d;
+}
+
+/* =========================================================
+   ORDER PANEL
+   ========================================================= */
+
+#orderPanel {
+  position: fixed;
+
+  left: 18px;
+  bottom: 18px;
+
+  z-index: 50;
+
+  width: min(330px, calc(100vw - 36px));
+
+  display: none;
+
+  padding: 16px;
+
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+
+  background: rgba(10, 12, 15, 0.82);
+
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+
+  pointer-events: none;
+}
+
+#orderPanel.visible {
+  display: block;
+}
+
+.orderTitle {
+  font-size: 0.72rem;
+  font-weight: 900;
+  color: #7d8690;
+
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.orderCustomer {
+  margin-top: 4px;
+
+  font-size: 1.15rem;
+  font-weight: 900;
+}
+
+.orderItems {
+  margin-top: 12px;
+
+  display: grid;
+  gap: 6px;
+}
+
+.orderItem {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+
+  padding: 7px 9px;
+
+  border-radius: 8px;
+
+  background: rgba(255, 255, 255, 0.05);
+
+  color: #c7ccd2;
+
+  font-size: 0.85rem;
+}
+
+.orderTotal {
+  display: flex;
+  justify-content: space-between;
+
+  margin-top: 12px;
+  padding-top: 11px;
+
+  border-top: 1px solid #30353b;
+
+  font-weight: 900;
+}
+
+.orderTotal span:last-child {
+  color: #63ff9d;
+}
+
+/* =========================================================
+   NOTIFICATIONS
+   ========================================================= */
+
+#notification {
+  position: fixed;
+
+  left: 50%;
+  bottom: 28px;
+
+  z-index: 300;
+
+  transform: translateX(-50%);
+
+  max-width: min(90vw, 520px);
+
+  padding: 12px 18px;
+
+  border: 1px solid #353c44;
+  border-radius: 999px;
+
+  background: rgba(12, 15, 19, 0.92);
+
+  color: #ffffff;
+
+  font-size: 0.85rem;
+  font-weight: 700;
+
+  opacity: 0;
+  pointer-events: none;
+
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s ease;
+}
+
+#notification.visible {
+  opacity: 1;
+
+  transform:
+    translateX(-50%)
+    translateY(-4px);
+}
+
+/* =========================================================
+   ERROR SCREEN
+   ========================================================= */
+
+#errorScreen {
+  position: fixed;
+  inset: 0;
+
+  z-index: 2000;
+
+  display: none;
+  align-items: center;
+  justify-content: center;
+
+  padding: 24px;
+
+  background: #08090b;
+}
+
+#errorScreen.visible {
+  display: flex;
+}
+
+.errorCard {
+  width: min(92vw, 560px);
+
+  padding: 30px;
+
+  border: 1px solid #592d2d;
+  border-radius: 18px;
+
+  background: #171012;
+}
+
+.errorCard h2 {
+  color: #ff7777;
+}
+
+.errorCard p {
+  margin-top: 12px;
+
+  color: #b4a7a7;
+
+  line-height: 1.55;
+}
+
+#errorMessage {
+  margin-top: 14px;
+
+  padding: 12px;
+
+  overflow-wrap: anywhere;
+
+  border-radius: 10px;
+
+  background: #0c0d0f;
+
+  color: #ffb2b2;
+
+  font-family: monospace;
+  font-size: 0.78rem;
+}
+
+/* =========================================================
+   VR BUTTON OVERRIDES
+   ========================================================= */
+
+#VRButton {
+  z-index: 500 !important;
+
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+  border-radius: 12px !important;
+
+  background: rgba(15, 18, 22, 0.9) !important;
+
+  font-family:
+    Inter,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    Arial,
+    sans-serif !important;
+
+  font-weight: 800 !important;
+}
+
+/* =========================================================
+   THREE.JS CANVAS
+   ========================================================= */
+
+canvas {
+  display: block;
+
+  width: 100%;
+  height: 100%;
+
+  touch-action: none;
+}
+
+/* =========================================================
+   MOBILE
+   ========================================================= */
+
+@media (max-width: 600px) {
+  .menuCard {
+    padding: 30px 22px;
+    border-radius: 20px;
+  }
+
+  .gameTitle {
+    font-size: 3.3rem;
+  }
+
+  .hudTop {
+    flex-direction: column;
+  }
+
+  .hudBox {
+    min-width: 92px;
+  }
+
+  #orderPanel {
+    bottom: 14px;
+    left: 14px;
+    width: calc(100vw - 28px);
+  }
+}
+
+/* =========================================================
+   REDUCED MOTION
+   ========================================================= */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
