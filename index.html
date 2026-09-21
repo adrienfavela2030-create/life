@@ -2,420 +2,1093 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-
   <meta
     name="viewport"
-    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    content="width=device-width, initial-scale=1.0, viewport-fit=cover"
   >
 
-  <meta name="theme-color" content="#10151c">
-
-  <title>LIFE: WebXR</title>
-
-  <style>
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-      -webkit-tap-highlight-color: transparent;
-    }
-
-    html,
-    body {
-      width: 100%;
-      height: 100%;
-      overflow: hidden;
-      background: #10151c;
-      font-family: Arial, Helvetica, sans-serif;
-      color: white;
-    }
-
-    body {
-      touch-action: none;
-    }
-
-    #game {
-      position: fixed;
-      inset: 0;
-      width: 100%;
-      height: 100%;
-    }
-
-    canvas {
-      display: block;
-      width: 100%;
-      height: 100%;
-    }
-
-    /* =========================
-       HUD
-    ========================= */
-
-    #hud {
-      position: fixed;
-      top: 14px;
-      left: 14px;
-
-      min-width: 210px;
-
-      padding: 12px 15px;
-
-      border-radius: 14px;
-
-      background: rgba(10, 14, 20, 0.78);
-      border: 1px solid rgba(255, 255, 255, 0.12);
-
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-
-      box-shadow:
-        0 10px 30px rgba(0, 0, 0, 0.25);
-
-      z-index: 20;
-
-      pointer-events: none;
-    }
-
-    #hud .title {
-      font-size: 18px;
-      font-weight: 800;
-      margin-bottom: 7px;
-      letter-spacing: 0.5px;
-    }
-
-    #hud .row {
-      display: flex;
-      justify-content: space-between;
-      gap: 18px;
-
-      font-size: 13px;
-      line-height: 1.65;
-
-      color: rgba(255, 255, 255, 0.86);
-    }
-
-    #hud .value {
-      font-weight: 700;
-      color: white;
-    }
-
-    /* =========================
-       Help
-    ========================= */
-
-    #help {
-      position: fixed;
-
-      left: 50%;
-      bottom: 18px;
-
-      transform: translateX(-50%);
-
-      max-width: calc(100% - 30px);
-
-      padding: 10px 15px;
-
-      border-radius: 12px;
-
-      background: rgba(10, 14, 20, 0.76);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-
-      backdrop-filter: blur(10px);
-      -webkit-backdrop-filter: blur(10px);
-
-      color: rgba(255, 255, 255, 0.88);
-
-      font-size: 13px;
-      text-align: center;
-
-      z-index: 20;
-
-      pointer-events: none;
-    }
-
-    /* =========================
-       Messages
-    ========================= */
-
-    #message {
-      position: fixed;
-
-      left: 50%;
-      top: 75%;
-
-      transform: translate(-50%, -50%);
-
-      max-width: min(500px, calc(100% - 40px));
-
-      padding: 13px 18px;
-
-      border-radius: 14px;
-
-      background: rgba(8, 11, 16, 0.9);
-      border: 1px solid rgba(255, 255, 255, 0.14);
-
-      box-shadow:
-        0 15px 45px rgba(0, 0, 0, 0.3);
-
-      font-size: 15px;
-      font-weight: 600;
-
-      text-align: center;
-
-      opacity: 0;
-      pointer-events: none;
-
-      transition:
-        opacity 0.2s ease,
-        transform 0.2s ease;
-
-      z-index: 50;
-    }
-
-    #message.show {
-      opacity: 1;
-      transform: translate(-50%, -55%);
-    }
-
-    /* =========================
-       Start screen
-    ========================= */
-
-    #start {
-      position: fixed;
-      inset: 0;
-
-      display: flex;
-      align-items: center;
-      justify-content: center;
-
-      padding: 20px;
-
-      background:
-        radial-gradient(
-          circle at center,
-          rgba(45, 75, 105, 0.45),
-          rgba(5, 8, 12, 0.97)
-        );
-
-      z-index: 100;
-    }
-
-    #start .panel {
-      width: min(600px, 100%);
-
-      padding: 32px;
-
-      border-radius: 24px;
-
-      background: rgba(12, 17, 24, 0.9);
-
-      border: 1px solid rgba(255, 255, 255, 0.12);
-
-      box-shadow:
-        0 30px 90px rgba(0, 0, 0, 0.5);
-
-      text-align: center;
-
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
-    }
-
-    #start h1 {
-      font-size: clamp(36px, 8vw, 64px);
-      font-weight: 900;
-
-      letter-spacing: -2px;
-
-      margin-bottom: 6px;
-    }
-
-    #start .subtitle {
-      color: rgba(255, 255, 255, 0.62);
-      font-size: 15px;
-      margin-bottom: 26px;
-    }
-
-    #start .description {
-      color: rgba(255, 255, 255, 0.82);
-
-      font-size: 15px;
-      line-height: 1.6;
-
-      margin-bottom: 24px;
-    }
-
-    #start button {
-      appearance: none;
-
-      border: none;
-      outline: none;
-
-      padding: 14px 24px;
-
-      border-radius: 14px;
-
-      background: white;
-      color: #10151c;
-
-      font-size: 16px;
-      font-weight: 800;
-
-      cursor: pointer;
-
-      box-shadow:
-        0 10px 25px rgba(0, 0, 0, 0.25);
-
-      transition:
-        transform 0.15s ease,
-        opacity 0.15s ease;
-    }
-
-    #start button:active {
-      transform: scale(0.96);
-    }
-
-    #start .controls {
-      margin-top: 20px;
-
-      font-size: 12px;
-      line-height: 1.6;
-
-      color: rgba(255, 255, 255, 0.5);
-    }
-
-    /* =========================
-       Mobile
-    ========================= */
-
-    @media (max-width: 600px) {
-      #hud {
-        top: 8px;
-        left: 8px;
-
-        min-width: 175px;
-
-        padding: 9px 11px;
-      }
-
-      #hud .title {
-        font-size: 15px;
-      }
-
-      #hud .row {
-        font-size: 11px;
-      }
-
-      #help {
-        bottom: 8px;
-        font-size: 11px;
-        padding: 8px 11px;
-      }
-
-      #start .panel {
-        padding: 24px 18px;
+  <title>Store Shift VR</title>
+
+  <link rel="stylesheet" href="./style.css">
+
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/"
       }
     }
-
-    /* =========================
-       VR Button
-    ========================= */
-
-    .webxr-button {
-      z-index: 200 !important;
-    }
-  </style>
+  </script>
 </head>
 
 <body>
 
-  <!-- Main 3D game -->
-  <div id="game"></div>
-
-  <!-- Game HUD -->
-  <div id="hud">
-    <div class="title">LIFE: WebXR</div>
-
-    <div class="row">
-      <span>Money</span>
-      <span class="value" id="money">$500</span>
-    </div>
-
-    <div class="row">
-      <span>Job</span>
-      <span class="value" id="job">Unemployed</span>
-    </div>
-
-    <div class="row">
-      <span>Health</span>
-      <span class="value" id="health">100</span>
-    </div>
-
-    <div class="row">
-      <span>Hunger</span>
-      <span class="value" id="hunger">100</span>
-    </div>
-
-    <div class="row">
-      <span>Energy</span>
-      <span class="value" id="energy">100</span>
-    </div>
-
-    <div class="row">
-      <span>Happiness</span>
-      <span class="value" id="happiness">100</span>
-    </div>
-
-    <div class="row">
-      <span>Time</span>
-      <span class="value" id="time">08:00</span>
-    </div>
-
-    <div class="row">
-      <span>Day</span>
-      <span class="value" id="day">1</span>
+  <!-- Loading screen -->
+  <div id="loadingScreen">
+    <div class="loadingBox">
+      <div class="logo">STORE SHIFT VR</div>
+      <div id="loadingText">Loading store...</div>
+      <div class="loadingBar">
+        <div id="loadingProgress"></div>
+      </div>
     </div>
   </div>
 
-  <!-- Controls -->
-  <div id="help">
-    VR: use your controllers to interact • Desktop: WASD + mouse • E: interact
-  </div>
-
-  <!-- Temporary game messages -->
-  <div id="message"></div>
-
-  <!-- Start screen -->
-  <div id="start">
-    <div class="panel">
-
-      <h1>LIFE</h1>
-
-      <div class="subtitle">
-        WebXR Life Simulator
-      </div>
-
-      <div class="description">
-        Explore your neighborhood, interact with the world,
-        meet NPCs, work jobs, earn money, and build your life.
-      </div>
+  <!-- Main menu -->
+  <div id="mainMenu" class="hidden">
+    <div class="menuBox">
+      <h1>STORE SHIFT VR</h1>
+      <p class="subtitle">Your shift starts now.</p>
 
       <button id="startButton">
-        START LIFE
+        START SHIFT
       </button>
 
-      <div class="controls">
-        WebXR headset: enter VR using the VR button<br>
-        Desktop: WASD to move • Mouse to look • E to interact
-      </div>
+      <button id="settingsButton">
+        SETTINGS
+      </button>
 
+      <div class="version">
+        WebXR Edition
+      </div>
     </div>
   </div>
 
-  <!-- IMPORTANT:
-       The actual game is now loaded from game.js.
-       Do NOT put another game script below this. -->
-  <script type="module" src="./game.js"></script>
+  <!-- In-game HUD -->
+  <div id="gameHUD" class="hidden">
+
+    <div class="hudTop">
+      <div>
+        SHIFT
+        <strong id="shiftNumber">1</strong>
+      </div>
+
+      <div>
+        MONEY
+        <strong>$<span id="moneyAmount">0.00</span></strong>
+      </div>
+    </div>
+
+    <div id="orderDisplay">
+      <div class="orderTitle">CURRENT CUSTOMER</div>
+      <div id="customerOrder">
+        Waiting for customer...
+      </div>
+    </div>
+
+    <div id="messageBox"></div>
+
+  </div>
+
+  <!-- Error message -->
+  <div id="errorScreen" class="hidden">
+    <div class="errorBox">
+      <h2>Something went wrong</h2>
+      <p id="errorText">
+        The game could not start.
+      </p>
+
+      <button id="reloadButton">
+        RELOAD
+      </button>
+    </div>
+  </div>
+
+  <script type="module">
+
+    import * as THREE from "three";
+
+    import { VRButton } from "three/addons/webxr/VRButton.js";
+
+    import { XRControllerModelFactory }
+      from "three/addons/webxr/XRControllerModelFactory.js";
+
+    import { XRHandModelFactory }
+      from "three/addons/webxr/XRHandModelFactory.js";
+
+
+    /*
+     * ---------------------------------------------------------
+     * STORE SHIFT VR
+     * Main application
+     * ---------------------------------------------------------
+     */
+
+    const S = window.StoreShiftVR = {
+
+      THREE,
+
+      scene: null,
+      camera: null,
+      renderer: null,
+
+      player: null,
+
+      controllers: [],
+      controllerGrips: [],
+      hands: [],
+
+      systems: {
+        game: null,
+        physics: null,
+        store: null,
+        customers: null
+      },
+
+      started: false,
+      loading: true,
+
+      money: 0,
+      shift: 1,
+
+      currentOrder: null,
+
+      clock: new THREE.Clock(),
+
+      settings: {
+        shadows: true,
+        quality: "high"
+      }
+
+    };
+
+
+    /*
+     * ---------------------------------------------------------
+     * DOM
+     * ---------------------------------------------------------
+     */
+
+    const loadingScreen =
+      document.getElementById("loadingScreen");
+
+    const loadingText =
+      document.getElementById("loadingText");
+
+    const loadingProgress =
+      document.getElementById("loadingProgress");
+
+    const mainMenu =
+      document.getElementById("mainMenu");
+
+    const gameHUD =
+      document.getElementById("gameHUD");
+
+    const errorScreen =
+      document.getElementById("errorScreen");
+
+    const errorText =
+      document.getElementById("errorText");
+
+    const startButton =
+      document.getElementById("startButton");
+
+    const reloadButton =
+      document.getElementById("reloadButton");
+
+    const settingsButton =
+      document.getElementById("settingsButton");
+
+    const shiftNumber =
+      document.getElementById("shiftNumber");
+
+    const moneyAmount =
+      document.getElementById("moneyAmount");
+
+    const customerOrder =
+      document.getElementById("customerOrder");
+
+    const messageBox =
+      document.getElementById("messageBox");
+
+
+    /*
+     * ---------------------------------------------------------
+     * LOADING
+     * ---------------------------------------------------------
+     */
+
+    function setLoading(percent, text) {
+
+      loadingProgress.style.width =
+        Math.max(0, Math.min(100, percent)) + "%";
+
+      loadingText.textContent = text;
+    }
+
+
+    /*
+     * ---------------------------------------------------------
+     * ERROR HANDLING
+     * ---------------------------------------------------------
+     */
+
+    function showError(error) {
+
+      console.error(error);
+
+      loadingScreen.classList.add("hidden");
+      mainMenu.classList.add("hidden");
+
+      errorScreen.classList.remove("hidden");
+
+      errorText.textContent =
+        error?.message ||
+        "Unknown error.";
+    }
+
+
+    /*
+     * ---------------------------------------------------------
+     * THREE.JS SETUP
+     * ---------------------------------------------------------
+     */
+
+    function createScene() {
+
+      S.scene =
+        new THREE.Scene();
+
+      S.scene.background =
+        new THREE.Color(0x87a9b8);
+
+
+      /*
+       * Camera
+       */
+
+      S.camera =
+        new THREE.PerspectiveCamera(
+          70,
+          window.innerWidth / window.innerHeight,
+          0.01,
+          1000
+        );
+
+
+      /*
+       * Player rig
+       */
+
+      S.player =
+        new THREE.Group();
+
+      S.player.name =
+        "PlayerRig";
+
+      S.player.position.set(
+        0,
+        1.6,
+        4
+      );
+
+      S.player.add(
+        S.camera
+      );
+
+      S.scene.add(
+        S.player
+      );
+
+
+      /*
+       * Renderer
+       */
+
+      S.renderer =
+        new THREE.WebGLRenderer({
+          antialias: true,
+          alpha: false
+        });
+
+      S.renderer.setPixelRatio(
+        Math.min(window.devicePixelRatio, 2)
+      );
+
+      S.renderer.setSize(
+        window.innerWidth,
+        window.innerHeight
+      );
+
+      S.renderer.xr.enabled = true;
+
+      S.renderer.xr.setReferenceSpaceType(
+        "local-floor"
+      );
+
+      S.renderer.shadowMap.enabled = true;
+
+      S.renderer.shadowMap.type =
+        THREE.PCFSoftShadowMap;
+
+      document.body.appendChild(
+        S.renderer.domElement
+      );
+
+
+      /*
+       * VR button
+       */
+
+      const vrButton =
+        VRButton.createButton(
+          S.renderer
+        );
+
+      vrButton.style.zIndex = "20";
+
+      document.body.appendChild(
+        vrButton
+      );
+
+
+      /*
+       * Basic lighting
+       */
+
+      const ambient =
+        new THREE.HemisphereLight(
+          0xffffff,
+          0x404040,
+          2
+        );
+
+      S.scene.add(
+        ambient
+      );
+
+
+      const light =
+        new THREE.DirectionalLight(
+          0xffffff,
+          3
+        );
+
+      light.position.set(
+        5,
+        10,
+        5
+      );
+
+      light.castShadow = true;
+
+      light.shadow.mapSize.width = 2048;
+      light.shadow.mapSize.height = 2048;
+
+      S.scene.add(
+        light
+      );
+
+
+      /*
+       * Controllers
+       */
+
+      setupControllers();
+
+
+      /*
+       * Resize
+       */
+
+      window.addEventListener(
+        "resize",
+        onResize
+      );
+    }
+
+
+    /*
+     * ---------------------------------------------------------
+     * CONTROLLERS + HANDS
+     * ---------------------------------------------------------
+     */
+
+    function setupControllers() {
+
+      const controllerFactory =
+        new XRControllerModelFactory();
+
+      const handFactory =
+        new XRHandModelFactory();
+
+
+      for (let i = 0; i < 2; i++) {
+
+        const controller =
+          S.renderer.xr.getController(i);
+
+        controller.userData.hand =
+          i === 0 ? "left" : "right";
+
+        S.player.add(
+          controller
+        );
+
+        S.controllers.push(
+          controller
+        );
+
+
+        const grip =
+          S.renderer.xr.getControllerGrip(i);
+
+        grip.userData.hand =
+          i === 0 ? "left" : "right";
+
+        const controllerModel =
+          controllerFactory.createControllerModel(
+            grip
+          );
+
+        grip.add(
+          controllerModel
+        );
+
+        S.player.add(
+          grip
+        );
+
+        S.controllerGrips.push(
+          grip
+        );
+
+
+        /*
+         * Hand tracking
+         */
+
+        const hand =
+          S.renderer.xr.getHand(i);
+
+        const handModel =
+          handFactory.createHandModel(
+            hand,
+            "mesh"
+          );
+
+        hand.add(
+          handModel
+        );
+
+        S.player.add(
+          hand
+        );
+
+        S.hands.push(
+          hand
+        );
+
+
+        /*
+         * Select
+         */
+
+        controller.addEventListener(
+          "selectstart",
+          () => {
+
+            if (
+              S.systems.physics &&
+              S.systems.physics.grab
+            ) {
+
+              S.systems.physics.grab(
+                controller
+              );
+
+            }
+
+          }
+        );
+
+
+        controller.addEventListener(
+          "selectend",
+          () => {
+
+            if (
+              S.systems.physics &&
+              S.systems.physics.release
+            ) {
+
+              S.systems.physics.release(
+                controller
+              );
+
+            }
+
+          }
+        );
+
+
+        /*
+         * Squeeze
+         */
+
+        controller.addEventListener(
+          "squeezestart",
+          () => {
+
+            if (
+              S.systems.physics &&
+              S.systems.physics.squeeze
+            ) {
+
+              S.systems.physics.squeeze(
+                controller
+              );
+
+            }
+
+          }
+        );
+
+      }
+
+    }
+
+
+    /*
+     * ---------------------------------------------------------
+     * GAME START
+     * ---------------------------------------------------------
+     */
+
+    async function startGame() {
+
+      if (S.started) {
+        return;
+      }
+
+      try {
+
+        startButton.disabled = true;
+
+        showMessage(
+          "Starting your shift..."
+        );
+
+
+        /*
+         * Start main game system
+         */
+
+        if (
+          S.systems.game &&
+          S.systems.game.start
+        ) {
+
+          await S.systems.game.start(
+            S
+          );
+
+        }
+
+
+        /*
+         * Start physics
+         */
+
+        if (
+          S.systems.physics &&
+          S.systems.physics.start
+        ) {
+
+          await S.systems.physics.start(
+            S
+          );
+
+        }
+
+
+        /*
+         * Build store
+         */
+
+        if (
+          S.systems.store &&
+          S.systems.store.start
+        ) {
+
+          await S.systems.store.start(
+            S
+          );
+
+        }
+
+
+        /*
+         * Start customers
+         */
+
+        if (
+          S.systems.customers &&
+          S.systems.customers.start
+        ) {
+
+          await S.systems.customers.start(
+            S
+          );
+
+        }
+
+
+        S.started = true;
+
+
+        mainMenu.classList.add(
+          "hidden"
+        );
+
+        gameHUD.classList.remove(
+          "hidden"
+        );
+
+
+        updateHUD();
+
+        showMessage(
+          "Your shift has started."
+        );
+
+
+        /*
+         * If VR isn't active yet, the player
+         * can press the VR button.
+         */
+
+        console.log(
+          "Store Shift VR started."
+        );
+
+      }
+
+      catch (error) {
+
+        showError(error);
+
+      }
+
+    }
+
+
+    /*
+     * ---------------------------------------------------------
+     * GAME LOOP
+     * ---------------------------------------------------------
+     */
+
+    function gameLoop() {
+
+      const delta =
+        Math.min(
+          S.clock.getDelta(),
+          0.05
+        );
+
+
+      /*
+       * Main game
+       */
+
+      if (
+        S.systems.game &&
+        S.systems.game.update
+      ) {
+
+        S.systems.game.update(
+          delta,
+          S
+        );
+
+      }
+
+
+      /*
+       * Physics
+       */
+
+      if (
+        S.systems.physics &&
+        S.systems.physics.update
+      ) {
+
+        S.systems.physics.update(
+          delta,
+          S
+        );
+
+      }
+
+
+      /*
+       * Store
+       */
+
+      if (
+        S.systems.store &&
+        S.systems.store.update
+      ) {
+
+        S.systems.store.update(
+          delta,
+          S
+        );
+
+      }
+
+
+      /*
+       * Customers
+       */
+
+      if (
+        S.systems.customers &&
+        S.systems.customers.update
+      ) {
+
+        S.systems.customers.update(
+          delta,
+          S
+        );
+
+      }
+
+
+      /*
+       * Render
+       */
+
+      S.renderer.render(
+        S.scene,
+        S.camera
+      );
+
+    }
+
+
+    /*
+     * ---------------------------------------------------------
+     * HUD
+     * ---------------------------------------------------------
+     */
+
+    function updateHUD() {
+
+      shiftNumber.textContent =
+        S.shift;
+
+      moneyAmount.textContent =
+        Number(S.money).toFixed(2);
+
+
+      if (S.currentOrder) {
+
+        customerOrder.textContent =
+          S.currentOrder.text ||
+          "Customer order";
+
+      }
+      else {
+
+        customerOrder.textContent =
+          "Waiting for customer...";
+
+      }
+
+    }
+
+
+    function showMessage(text) {
+
+      messageBox.textContent =
+        text;
+
+      messageBox.classList.add(
+        "visible"
+      );
+
+      clearTimeout(
+        showMessage.timer
+      );
+
+      showMessage.timer =
+        setTimeout(() => {
+
+          messageBox.classList.remove(
+            "visible"
+          );
+
+        }, 3000);
+
+    }
+
+
+    /*
+     * ---------------------------------------------------------
+     * MONEY
+     * ---------------------------------------------------------
+     */
+
+    S.addMoney = function(amount) {
+
+      const value =
+        Number(amount);
+
+      if (
+        !Number.isFinite(value)
+      ) {
+        return;
+      }
+
+      S.money += value;
+
+      updateHUD();
+
+    };
+
+
+    /*
+     * ---------------------------------------------------------
+     * ORDER
+     * ---------------------------------------------------------
+     */
+
+    S.setOrder = function(order) {
+
+      S.currentOrder =
+        order || null;
+
+      updateHUD();
+
+    };
+
+
+    S.clearOrder = function() {
+
+      S.currentOrder =
+        null;
+
+      updateHUD();
+
+    };
+
+
+    /*
+     * ---------------------------------------------------------
+     * RESIZE
+     * ---------------------------------------------------------
+     */
+
+    function onResize() {
+
+      if (!S.camera || !S.renderer) {
+        return;
+      }
+
+      S.camera.aspect =
+        window.innerWidth /
+        window.innerHeight;
+
+      S.camera.updateProjectionMatrix();
+
+      S.renderer.setSize(
+        window.innerWidth,
+        window.innerHeight
+      );
+
+    }
+
+
+    /*
+     * ---------------------------------------------------------
+     * BUTTONS
+     * ---------------------------------------------------------
+     */
+
+    startButton.addEventListener(
+      "click",
+      startGame
+    );
+
+
+    reloadButton.addEventListener(
+      "click",
+      () => {
+        window.location.reload();
+      }
+    );
+
+
+    settingsButton.addEventListener(
+      "click",
+      () => {
+
+        showMessage(
+          "Settings will be added later."
+        );
+
+      }
+    );
+
+
+    /*
+     * ---------------------------------------------------------
+     * LOAD THE OTHER GAME FILES
+     * ---------------------------------------------------------
+     */
+
+    async function loadSystems() {
+
+      setLoading(
+        15,
+        "Loading game..."
+      );
+
+
+      /*
+       * These files will be created next.
+       */
+
+      const [
+        game,
+        physics,
+        store,
+        customers
+      ] = await Promise.all([
+
+        import("./game.js"),
+
+        import("./physics.js"),
+
+        import("./store.js"),
+
+        import("./customers.js")
+
+      ]);
+
+
+      setLoading(
+        70,
+        "Connecting systems..."
+      );
+
+
+      S.systems.game =
+        game;
+
+      S.systems.physics =
+        physics;
+
+      S.systems.store =
+        store;
+
+      S.systems.customers =
+        customers;
+
+
+      /*
+       * Setup each system if it provides setup().
+       */
+
+      for (
+        const system of [
+          game,
+          physics,
+          store,
+          customers
+        ]
+      ) {
+
+        if (
+          system &&
+          typeof system.setup === "function"
+        ) {
+
+          await system.setup(
+            S
+          );
+
+        }
+
+      }
+
+
+      setLoading(
+        100,
+        "Ready!"
+      );
+
+
+      S.loading = false;
+
+
+      setTimeout(() => {
+
+        loadingScreen.classList.add(
+          "hidden"
+        );
+
+        mainMenu.classList.remove(
+          "hidden"
+        );
+
+      }, 350);
+
+    }
+
+
+    /*
+     * ---------------------------------------------------------
+     * BOOT
+     * ---------------------------------------------------------
+     */
+
+    async function boot() {
+
+      try {
+
+        setLoading(
+          5,
+          "Starting WebXR..."
+        );
+
+
+        createScene();
+
+
+        setLoading(
+          30,
+          "Loading VR systems..."
+        );
+
+
+        await loadSystems();
+
+
+        S.renderer.setAnimationLoop(
+          gameLoop
+        );
+
+      }
+
+      catch (error) {
+
+        showError(error);
+
+      }
+
+    }
+
+
+    /*
+     * Start
+     */
+
+    boot();
+
+  </script>
 
 </body>
 </html>
